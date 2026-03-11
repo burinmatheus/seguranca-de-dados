@@ -1,0 +1,12 @@
+com/seguranca/cliente/adapter/out/TcpConexaoClienteAdapter.class
+com/seguranca/cliente/application/port/out/CriptografadorPort.class
+com/seguranca/cliente/adapter/out/RsaCriptografadorAdapter.class
+com/seguranca/cliente/application/port/out/ConexaoClientePort.class
+com/seguranca/cliente/application/port/in/EnviarMensagemUseCase.class
+com/seguranca/cliente/Main.class
+com/seguranca/cliente/infrastructure/config/ClienteConfig.class
+com/seguranca/cliente/domain/model/ChavePublicaRemota.class
+com/seguranca/cliente/adapter/in/ConsoleInputAdapter.class
+com/seguranca/cliente/application/usecase/EnviarMensagemUseCaseImpl.class
+com/seguranca/cliente/domain/model/MensagemCifrada.class
+com/seguranca/cliente/domain/model/MensagemClara.class
