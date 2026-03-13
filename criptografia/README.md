@@ -22,6 +22,8 @@ PC1 (Servidor)                                 PC2 (Cliente)
 - Java 25+ (`java --version`)
 - Maven 3.8+ (`mvn --version`)
 
+> Execute os comandos abaixo a partir da pasta `criptografia/`.
+
 ---
 
 ## Compilar
@@ -101,28 +103,29 @@ Resultado esperado: `BUILD SUCCESS` em ambos os modulos.
 
 ```
 seguranca-de-dados/
-|-- README.md
-|-- RELATORIO.md
-|-- docs/
-|   `-- sistema-rsa-completo.plantuml   <- 6 diagramas
-|
-|-- servidor-rsa/   (PC1)
-|   |-- pom.xml
-|   `-- src/main/java/com/seguranca/servidor/
-|       |-- domain/model/               (ChaveAssimetrica, MensagemCifrada, MensagemClara)
-|       |-- application/port/           (interfaces de entrada e saida)
-|       |-- application/usecase/        (orquestracao do fluxo)
-|       |-- adapter/out/                (RSA unwrap + AES-GCM decrypt + TCP)
-|       `-- infrastructure/config/      (wiring de dependencias)
-|
-`-- cliente-rsa/    (PC2)
-    |-- pom.xml
-    `-- src/main/java/com/seguranca/cliente/
-        |-- domain/model/               (ChavePublicaRemota, MensagemClara, MensagemCifrada)
-        |-- application/port/           (interfaces de entrada e saida)
-        |-- application/usecase/        (orquestracao do fluxo)
-        |-- adapter/                    (console + RSA wrap + AES-GCM + TCP)
-        `-- infrastructure/config/      (wiring de dependencias)
+`-- criptografia/
+    |-- README.md
+    |-- RELATORIO.md
+    |-- docs/
+    |   `-- sistema-rsa-completo.plantuml   <- 1 diagrama de fluxo em etapas
+    |
+    |-- servidor-rsa/   (PC1)
+    |   |-- pom.xml
+    |   `-- src/main/java/com/seguranca/servidor/
+    |       |-- domain/model/               (ChaveAssimetrica, MensagemCifrada, MensagemClara)
+    |       |-- application/port/           (interfaces de entrada e saida)
+    |       |-- application/usecase/        (orquestracao do fluxo)
+    |       |-- adapter/out/                (RSA unwrap + AES-GCM decrypt + TCP)
+    |       `-- infrastructure/config/      (wiring de dependencias)
+    |
+    `-- cliente-rsa/    (PC2)
+        |-- pom.xml
+        `-- src/main/java/com/seguranca/cliente/
+            |-- domain/model/               (ChavePublicaRemota, MensagemClara, MensagemCifrada)
+            |-- application/port/           (interfaces de entrada e saida)
+            |-- application/usecase/        (orquestracao do fluxo)
+            |-- adapter/                    (console + RSA wrap + AES-GCM + TCP)
+            `-- infrastructure/config/      (wiring de dependencias)
 ```
 
 ---
@@ -146,20 +149,18 @@ seguranca-de-dados/
 
 ---
 
-## Diagramas C4 (PlantUML)
+## Diagrama de Fluxo (PlantUML)
 
 Arquivo: [`docs/sistema-rsa-completo.plantuml`](docs/sistema-rsa-completo.plantuml)
 
 Renderizar no VS Code com a extensao **PlantUML** (`Alt+D`) ou em [plantuml.com/plantuml](https://plantuml.com/plantuml).
 
-| Diagrama | Nivel | Conteudo |
-|---|---|---|
-| `c4-context` | Level 1 | Visao geral do sistema |
-| `c4-container` | Level 2 | JARs Maven e comunicacao TCP |
-| `c4-component-servidor` | Level 3 | Componentes internos do servidor-rsa |
-| `c4-component-cliente` | Level 3 | Componentes internos do cliente-rsa |
-| `c4-dynamic` | Level 3 | Sequencia numerada do protocolo hibrido |
-| `sequence-troca-de-chaves` | Sequencia | Troca de chave RSA + cifra AES-GCM |
+O arquivo contem um diagrama de sequencia com o fluxo completo em 4 etapas:
+
+1. Preparacao e conexao
+2. Criptografia no cliente
+3. Processamento no servidor
+4. Confirmacao e encerramento
 
 ---
 

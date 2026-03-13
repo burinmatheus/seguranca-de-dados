@@ -35,18 +35,17 @@ RSA puro nao e adequado para mensagens arbitrariamente grandes e tem custo compu
 
 ---
 
-## 2. Diagramas C4 (PlantUML)
+## 2. Diagrama PlantUML (Fluxo em Etapas)
 
-Todos os diagramas estao no arquivo [`docs/sistema-rsa-completo.plantuml`](docs/sistema-rsa-completo.plantuml).
+O diagrama esta no arquivo [`docs/sistema-rsa-completo.plantuml`](docs/sistema-rsa-completo.plantuml).
 
-| Diagrama | Nivel | Conteudo |
-|---|---|---|
-| `c4-context` | C4 Level 1 | Visao geral do sistema |
-| `c4-container` | C4 Level 2 | Containers Java/Maven e rede TCP |
-| `c4-component-servidor` | C4 Level 3 | Componentes internos do servidor-rsa |
-| `c4-component-cliente` | C4 Level 3 | Componentes internos do cliente-rsa |
-| `c4-dynamic` | C4 Level 3 | Fluxo numerado do protocolo hibrido |
-| `sequence-troca-de-chaves` | Sequencia | Chamadas de API Java na troca de chave e cifra |
+Ele representa o fluxo completo da comunicacao em um unico diagrama de sequencia,
+organizado em 4 etapas:
+
+1. Preparacao e conexao
+2. Criptografia no cliente
+3. Processamento no servidor
+4. Confirmacao e encerramento
 
 ---
 
@@ -135,25 +134,26 @@ para envio da chave publica, payload cifrado e confirmacao.
 
 ```text
 seguranca-de-dados/
-|-- README.md
-|-- RELATORIO.md
-|-- docs/
-|   `-- sistema-rsa-completo.plantuml
-|-- servidor-rsa/
-|   `-- src/main/java/com/seguranca/servidor/
-|       |-- adapter/out/
-|       |   |-- RsaGeradorDeChavesAdapter.java
-|       |   |-- RsaDescriptografadorAdapter.java
-|       |   `-- TcpConexaoServidorAdapter.java
-|       |-- application/usecase/IniciarServidorUseCaseImpl.java
-|       `-- domain/model/MensagemCifrada.java
-`-- cliente-rsa/
+`-- criptografia/
+  |-- README.md
+  |-- RELATORIO.md
+  |-- docs/
+  |   `-- sistema-rsa-completo.plantuml
+  |-- servidor-rsa/
+  |   `-- src/main/java/com/seguranca/servidor/
+  |       |-- adapter/out/
+  |       |   |-- RsaGeradorDeChavesAdapter.java
+  |       |   |-- RsaDescriptografadorAdapter.java
+  |       |   `-- TcpConexaoServidorAdapter.java
+  |       |-- application/usecase/IniciarServidorUseCaseImpl.java
+  |       `-- domain/model/MensagemCifrada.java
+  `-- cliente-rsa/
     `-- src/main/java/com/seguranca/cliente/
-        |-- adapter/out/
-        |   |-- RsaCriptografadorAdapter.java
-        |   `-- TcpConexaoClienteAdapter.java
-        |-- application/usecase/EnviarMensagemUseCaseImpl.java
-        `-- domain/model/MensagemCifrada.java
+      |-- adapter/out/
+      |   |-- RsaCriptografadorAdapter.java
+      |   `-- TcpConexaoClienteAdapter.java
+      |-- application/usecase/EnviarMensagemUseCaseImpl.java
+      `-- domain/model/MensagemCifrada.java
 ```
 
 ---
@@ -166,6 +166,8 @@ seguranca-de-dados/
 - Maven 3.8+
 
 ### 7.2 Build
+
+> Executar os comandos abaixo a partir da pasta `criptografia/`.
 
 ```bash
 cd servidor-rsa && mvn package -q
@@ -273,7 +275,7 @@ Resultado esperado: `BUILD SUCCESS` nos dois modulos.
 
 ### Limitacao atual
 
-A chave publica do servidor nao e autenticada por certificado/fingerprint. Em ambiente hostil, isso permite risco de MITM.
+A chave publica do servidor não é autenticada por certificado/fingerprint. Em ambiente hostil, isso permite risco de MITM.
 
 ### Melhorias recomendadas
 
@@ -294,15 +296,4 @@ A chave publica do servidor nao e autenticada por certificado/fingerprint. Em am
 | Criptografia | APIs padrao `java.security` e `javax.crypto` |
 | Rede | `Socket` / `ServerSocket` |
 | Arquitetura | Hexagonal + Clean Architecture |
-| Diagramacao | PlantUML com modelo C4 |
-
----
-
-## 13. Referencias
-
-- RFC 8017 - PKCS #1 v2.2 (RSA OAEP)
-- NIST SP 800-131A - Recomendacoes de algoritmos e tamanhos de chave
-- NIST SP 800-38D - GCM mode
-- OWASP Cryptographic Storage Cheat Sheet
-- Oracle Java Security Standard Algorithm Names
-- C4 Model (Simon Brown)
+| Diagramacao | PlantUML (fluxo em etapas) |

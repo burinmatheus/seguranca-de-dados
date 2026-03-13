@@ -1,205 +1,46 @@
-@startuml c4-context
-!include <C4/C4_Context.puml>
+@startuml
+title Fluxo em Etapas - Criptografia Híbrida RSA + AES-256-GCM
 
-title Sistema de Criptografia Hibrida RSA + AES-256-GCM - Contexto (C4 Level 1)
-
-Person(usuario, "Usuario", "Digita mensagem no PC2")
-
-System(servidorRsa, "servidor-rsa", "PC1: gera par RSA 2048, envia chave publica, desencapsula chave AES e descriptografa com AES-GCM")
-System(clienteRsa, "cliente-rsa", "PC2: recebe chave publica, gera chave AES efemera, encapsula com RSA-OAEP e envia payload hibrido")
-
-Rel(usuario, clienteRsa, "Digita mensagem", "Console stdin")
-Rel(clienteRsa, servidorRsa, "Troca chave publica + envio payload hibrido", "TCP :65432")
-Rel_Back(clienteRsa, servidorRsa, "Confirmacao OK", "TCP :65432")
-
-SHOW_LEGEND()
-@enduml
-
-
-@startuml c4-container
-!include <C4/C4_Container.puml>
-
-title Sistema de Criptografia Hibrida RSA + AES-256-GCM - Containers (C4 Level 2)
-
-Person(usuario, "Usuario", "Operador no PC2")
-
-System_Boundary(pc1, "PC1 - Servidor") {
-    Container(servidorApp, "servidor-rsa", "Java 25 / Maven JAR", "Gera RSA 2048, aguarda TCP :65432, faz RSA unwrap da chave AES e descriptografa payload AES-GCM")
-}
-
-System_Boundary(pc2, "PC2 - Cliente") {
-    Container(clienteApp, "cliente-rsa", "Java 25 / Maven JAR", "Conecta TCP, recebe chave publica, gera AES-256 + IV, faz RSA wrap da chave e envia payload")
-}
-
-Rel(usuario, clienteApp, "Digita mensagem", "stdin")
-Rel(clienteApp, servidorApp, "Recebe chave publica / envia wrappedKey+iv+ciphertext", "TCP :65432 / DataInputStream/DataOutputStream")
-Rel_Back(clienteApp, servidorApp, "Confirmacao OK", "TCP :65432")
-
-SHOW_LEGEND()
-@enduml
-
-
-@startuml c4-component-servidor
-!include <C4/C4_Component.puml>
-
-title servidor-rsa (PC1) - Componentes (C4 Level 3)
-
-Container_Boundary(servidor, "servidor-rsa") {
-    Component(config, "ServidorConfig", "infrastructure/config", "DI manual. Instancia e injeta adapters no use case")
-    Component(useCaseImpl, "IniciarServidorUseCaseImpl", "application/usecase", "Orquestra fluxo: gerar RSA, receber payload hibrido, descriptografar e confirmar")
-    Component(geradorAdapter, "RsaGeradorDeChavesAdapter", "adapter/out - GeradorDeChavesPort", "Gera par RSA 2048 (publica DER/X.509, privada PKCS#8)")
-    Component(descriptografadorAdapter, "RsaDescriptografadorAdapter", "adapter/out - DescriptografadorPort", "Desempacota payload, faz RSA unwrap da chave AES e decrypt com AES/GCM/NoPadding")
-    Component(tcpAdapter, "TcpConexaoServidorAdapter", "adapter/out - ConexaoServidorPort", "ServerSocket :65432. Framing writeInt + write")
-}
-
-Rel(config, useCaseImpl, "instancia e injeta")
-Rel(config, geradorAdapter, "instancia")
-Rel(config, descriptografadorAdapter, "instancia")
-Rel(config, tcpAdapter, "instancia")
-Rel(useCaseImpl, geradorAdapter, "GeradorDeChavesPort.gerar()")
-Rel(useCaseImpl, tcpAdapter, "ConexaoServidorPort.aguardarEReceberMensagem() + enviarConfirmacao()")
-Rel(useCaseImpl, descriptografadorAdapter, "DescriptografadorPort.descriptografar()")
-
-SHOW_LEGEND()
-@enduml
-
-
-@startuml c4-component-cliente
-!include <C4/C4_Component.puml>
-
-title cliente-rsa (PC2) - Componentes (C4 Level 3)
-
-Person_Ext(usuario, "Usuario")
-
-Container_Boundary(cliente, "cliente-rsa") {
-    Component(config, "ClienteConfig", "infrastructure/config", "DI manual. HOST=127.0.0.1, porta 65432")
-    Component(consoleAdapter, "ConsoleInputAdapter", "adapter/in", "Le mensagem do usuario via Scanner(System.in)")
-    Component(useCaseImpl, "EnviarMensagemUseCaseImpl", "application/usecase", "Orquestra: conectar, receber chave, criptografar hibrido, enviar")
-    Component(criptografadorAdapter, "RsaCriptografadorAdapter", "adapter/out - CriptografadorPort", "Gera AES-256 + IV, encapsula chave AES com RSA-OAEP, cifra mensagem com AES-GCM")
-    Component(tcpAdapter, "TcpConexaoClienteAdapter", "adapter/out - ConexaoClientePort", "Socket TCP HOST:65432. Framing writeInt + write")
-}
-
-Rel(usuario, consoleAdapter, "Digita mensagem", "stdin")
-Rel(config, consoleAdapter, "instancia")
-Rel(config, useCaseImpl, "instancia e injeta")
-Rel(config, criptografadorAdapter, "instancia")
-Rel(config, tcpAdapter, "instancia")
-Rel(consoleAdapter, useCaseImpl, "EnviarMensagemUseCase.enviar(MensagemClara)")
-Rel(useCaseImpl, tcpAdapter, "ConexaoClientePort.conectarEReceberChavePublica()")
-Rel(useCaseImpl, criptografadorAdapter, "CriptografadorPort.criptografar(chavePublica, mensagem)")
-Rel(useCaseImpl, tcpAdapter, "ConexaoClientePort.enviarEReceberConfirmacao(mensagemCifrada)")
-
-SHOW_LEGEND()
-@enduml
-
-
-@startuml c4-dynamic
-!include <C4/C4_Dynamic.puml>
-
-title Fluxo de Comunicacao Hibrida - Dinamico (C4 Level 3)
-
-Person(usuario, "Usuario")
-Container(cliente, "cliente-rsa", "Java 25", "PC2")
-Container(servidor, "servidor-rsa", "Java 25", "PC1")
-
-Rel(1, servidor, servidor, "Gera par RSA 2048", "publica DER/X.509 | privada PKCS#8")
-Rel(2, servidor, servidor, "Aguarda conexao TCP :65432", "ServerSocket.accept()")
-Rel(3, usuario, cliente, "Digita mensagem", "stdin")
-Rel(4, cliente, servidor, "Conecta", "Socket(host, 65432)")
-Rel(5, servidor, cliente, "Envia chave publica", "writeInt(294) + write(pubBytes)")
-Rel(6, cliente, cliente, "Reconstrui PublicKey", "X509EncodedKeySpec + KeyFactory.generatePublic()")
-Rel(7, cliente, cliente, "Gera AES-256 + IV(12)", "KeyGenerator + SecureRandom")
-Rel(8, cliente, cliente, "Encapsula chave AES", "RSA-OAEP WRAP_MODE => wrappedKey[256]")
-Rel(9, cliente, cliente, "Cifra mensagem", "AES/GCM/NoPadding => ciphertext+tag")
-Rel(10, cliente, servidor, "Envia payload hibrido", "writeInt(N) + write(wrappedKey||iv||ciphertext)")
-Rel(11, servidor, servidor, "Desempacota payload", "wrappedKey[256], iv[12], ciphertext+tag")
-Rel(12, servidor, servidor, "Desencapsula chave AES", "RSA-OAEP UNWRAP_MODE")
-Rel(13, servidor, servidor, "Descriptografa e valida tag", "AES-GCM DECRYPT_MODE")
-Rel(14, servidor, cliente, "Envia confirmacao OK", "writeInt + write(okBytes)")
-
-SHOW_LEGEND()
-@enduml
-
-
-@startuml sequence-troca-de-chaves
 skinparam sequenceArrowThickness 2
 skinparam roundcorner 8
-skinparam backgroundColor #FAFAFA
-skinparam sequenceParticipantBackgroundColor #E8F4FD
 
-title Sequencia - Troca de Chave RSA e Cifra AES-256-GCM
+actor "Usuario" as Usuario
+participant "Cliente (PC2)" as Cliente
+participant "Servidor (PC1)" as Servidor
 
-participant "Usuario\n(PC2)" as USR
-participant "cliente-rsa\n(PC2)" as CLI
-participant "servidor-rsa\n(PC1)" as SRV
+== Etapa 1 - Preparação e Conexão ==
+Servidor -> Servidor: Gerar par RSA 2048 bits
+Servidor -> Servidor: Aguardar conexão TCP :65432
+Usuario -> Cliente: Digitar mensagem
+Cliente -> Servidor: Conectar (Socket)
 
-== PC1: Geracao do par RSA ==
+Servidor --> Cliente: Enviar chave pública RSA
 
-SRV -> SRV : KeyPairGenerator.getInstance("RSA").initialize(2048)
-SRV -> SRV : generateKeyPair()
-note right of SRV
-  pub  = getPublic().getEncoded()  => DER/X.509
-  priv = getPrivate().getEncoded() => PKCS#8 (somente PC1)
-end note
-SRV -> SRV : ServerSocket.bind(65432) / accept()
 
-== PC2: Inicio ==
+Cliente -> Cliente: Reconstruir PublicKey (X509EncodedKeySpec)
 
-USR -> CLI : digita mensagem
-CLI -> SRV : new Socket(host, 65432)
+== Etapa 2 - Criptografia no Cliente ==
+Cliente -> Cliente: Gerar chave AES-256 e IV (12 bytes)
+Cliente -> Cliente: Encapsular chave AES com RSA-OAEP (WRAP_MODE)
+Cliente -> Cliente: Cifrar mensagem com AES/GCM/NoPadding
+Cliente -> Cliente: Montar payload = wrappedKey || IV || ciphertext+tag
 
-== Troca da chave publica (PC1 -> PC2) ==
+Cliente -> Servidor: Enviar payload híbrido
 
-SRV -> CLI : writeInt(pubLen)
-SRV -> CLI : write(pubBytes) + flush()
-note right of CLI
-  readInt() -> pubLen
-  readNBytes(pubLen) -> pubBytes
-  KeyFactory.generatePublic(new X509EncodedKeySpec(pubBytes))
-end note
+== Etapa 3 - Processamento no Servidor ==
+Servidor -> Servidor: Separar wrappedKey, IV e ciphertext+tag
+Servidor -> Servidor: Recuperar chave AES com RSA-OAEP (UNWRAP_MODE)
+Servidor -> Servidor: Descriptografar com AES-GCM
+Servidor -> Servidor: Validar integridade (tag GCM)
 
-== Criptografia hibrida no cliente ==
-
-CLI -> CLI : KeyGenerator.getInstance("AES").init(256)
-CLI -> CLI : generateKey() -> aesKey
-CLI -> CLI : SecureRandom.nextBytes(iv[12])
-
-CLI -> CLI : Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
-CLI -> CLI : rsa.init(WRAP_MODE, publicKey, OAEPParameterSpec)
-CLI -> CLI : wrappedKey = rsa.wrap(aesKey)
-note right of CLI
-  wrappedKey tem 256 bytes (RSA-2048)
-end note
-
-CLI -> CLI : Cipher.getInstance("AES/GCM/NoPadding")
-CLI -> CLI : aes.init(ENCRYPT_MODE, aesKey, GCMParameterSpec(128, iv))
-CLI -> CLI : aesCiphertext = aes.doFinal(msg.getBytes(UTF_8))
-note right of CLI
-  aesCiphertext inclui tag GCM de 16 bytes
-end note
-
-== Envio do payload (PC2 -> PC1) ==
-
-CLI -> CLI : payload = wrappedKey || iv || aesCiphertext
-CLI -> SRV : writeInt(payload.length)
-CLI -> SRV : write(payload) + flush()
-
-== Descriptografia no servidor ==
-
-SRV -> SRV : readInt() + readNBytes(payloadLen)
-SRV -> SRV : split payload em wrappedKey[256], iv[12], aesCiphertext
-SRV -> SRV : rsa.init(UNWRAP_MODE, privateKey, OAEPParameterSpec)
-SRV -> SRV : aesKey = rsa.unwrap(wrappedKey, "AES", SECRET_KEY)
-SRV -> SRV : aes.init(DECRYPT_MODE, aesKey, GCMParameterSpec(128, iv))
-SRV -> SRV : plain = aes.doFinal(aesCiphertext)
-note right of SRV
-  Se houver adulteracao, GCM falha na tag
-  (AEADBadTagException)
-end note
-
-== Confirmacao ==
-
-SRV -> CLI : writeInt(n) + write("OK: mensagem recebida e descriptografada.")
-CLI -> USR : exibe confirmacao
+== Etapa 4 - Confirmação e Encerramento ==
+alt Mensagem válida
+  Servidor --> Cliente: "OK: mensagem recebida e descriptografada."
+  Cliente -> Usuario: Exibir sucesso
+  Cliente -> Cliente: Encerrar conexão
+else Falha na descriptografia/integridade
+  Servidor -> Servidor: Lançar exceção (sem confirmação OK)
+  Cliente -> Usuario: Exibir erro de comunicação
+end
 
 @enduml
